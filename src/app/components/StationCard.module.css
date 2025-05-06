@@ -1,0 +1,352 @@
+.appContainer {
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  
+  .headerContainer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2rem;
+  }
+  
+  .headerContent {
+    position: relative;
+    z-index: 2;
+  }
+  
+  .rotatingWheel {
+    position: absolute;
+    top: 8%;
+    left: 0;
+    width: 80px; /* adjust size as needed */
+    height: 80px;
+    z-index: 1;
+    opacity: 0.3;
+    animation: spin 5s linear infinite;
+  }
+  
+  /* Ensure the SVG inside the rotating wheel scales correctly */
+  .rotatingWheel svg {
+    width: 100%;
+    height: 100%;
+    color: #FDFDFD; /* or your preferred color */
+  }
+  
+  @keyframes spin {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Existing styles for searchButton, appTitle, etc remain the same */
+  
+  .searchButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: #FDFDFD;
+  }
+  
+  .searchInput {
+    margin-top: 1rem;
+    padding: 1rem;
+    width: 100%;
+    background-color: #ffffff;
+    border: none;  /* removes the default border */
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: box-shadow 0.2s;
+    margin-bottom: 20px;
+  }
+  
+  .appTitle {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #FDFDFD; /* blue-800 */
+    margin-bottom: 0.5rem;
+  }
+  
+  .appSubtitle {
+    color: #FDFDFD; /* blue-600 */
+    margin-bottom: 1rem;
+  }
+  
+  .loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+  }
+  
+  .loadingText {
+    color: #2563eb; /* blue-600 */
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  
+  .loadingSpinner {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: #2563eb;
+    border-bottom-color: #2563eb;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .errorContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    background-color: #fee2e2; /* red-100 */
+    padding: 1rem;
+  }
+  
+  .errorText {
+    color: #dc2626; /* red-600 */
+    font-size: 1.25rem;
+  }
+  
+  /* Stations list */
+  .stationsGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .stationCard {
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 1rem;
+    transition: box-shadow 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  
+  .stationCard:hover {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  
+  .stationHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  
+  .stationInfo {
+    flex: 1;
+  }
+  
+  .stationName {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #001A9D;
+  }
+  
+  .stationAddress {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    color: #001A9D;
+  }
+  
+  .addressText {
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .icon {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.25rem;
+  }
+  
+  .arrowIcon {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #001A9D;
+  }
+  
+  .stationStats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+  }
+  
+  .bikesAvailable {
+    display: flex;
+    align-items: center;
+    color: #01A661; /* green-600 */
+  }
+  
+  .bikesAvailable .bikesCount {
+    font-weight: 500;
+    margin-left: 0.25rem;
+  }
+  
+  .spacesAvailable {
+    color: #5EBAF6;
+    font-weight: 500;
+  }
+  
+  .stationStatus {
+    margin-top: 0.5rem;
+  }
+  
+  .statusBadge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    width: fit-content;
+  }
+  
+  .statusOpen {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+  
+  .statusClosed {
+    background-color: #FBDCD9;
+    color: #E5A09A;
+  }
+  
+  /* Station Detail page */
+  .backButton {
+    display: flex;
+    align-items: center;
+    color: #FDFDFD;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+  }
+  
+  .stationDetailCard {
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+  }
+  
+  .stationDetailName {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #001A9D;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stationDetailAddress {
+    display: flex;
+    align-items: center;
+    color: #001A9D;
+    margin-bottom: 1rem;
+  }
+  
+  .stationMeta {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+  }
+  
+  .lastUpdated {
+    display: flex;
+    align-items: center;
+    color: #001a9d78;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .availabilityGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .bikesCard {
+    background-color: #CBECDE;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    color: #01A661;
+  }
+  
+  .spacesCard {
+    background-color: #DDF0FC;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    color: #5EBAF6;
+  }
+  
+  .availabilityHeader {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .availabilityCount {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  
+  .progressBarContainer {
+    width: 100%;
+    height: 1rem;
+    background-color: #FBDCD9;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  
+  .progressBar {
+    height: 100%;
+    background-color: #E5A09A;
+    border-radius: 9999px;
+  }
+  
+  .capacityCard {
+    background-color: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+  }
+  
+  .capacityCard h3 {
+    font-weight: 500;
+    color: #4b5563;
+    margin-bottom: 0.5rem;
+  }
+  
+  .capacityLabels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+  }
+  
+  .bikeImageContainer {
+    position: relative;
+    width: 100%;
+    margin-top: 2rem;
+  }
+  
+  .bikeImage {
+    width: 70%; /* Adjust width as needed */
+    position: relative;
+    left: -80px;
+  }
