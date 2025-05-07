@@ -1,23 +1,33 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
 import styles from './page.module.css';
-import { Station } from '../types/stations';
 import StationCard from '../components/StationCard';
 import useNetwork from '@/data/network';
-
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const {network, isLoading, isError } = useNetwork();
+  const { network, isLoading, isError } = useNetwork();
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError) return <div>Error</div>;
+  if (isLoading) 
+    return (
+      <div id="loading" className={styles.loadingContainer}>
+        <div className={styles.loadingText}>Loading Velo stations...</div>
+        <div className={styles.loadingSpinner}></div>
+      </div>
+    );
+  if (isError) 
+    return (
+      <div id="error" className={styles.errorContainer}>
+        <div className={styles.errorText}>{isError}</div>
+      </div>
+    );
   
   const stations = network.stations;
-
+  const filteredStations = stations.filter((station) =>
+    station.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className={styles.appContainer}>
@@ -61,22 +71,13 @@ export default function HomePage() {
         </div>
       )}
 
-      {isLoading && (
-        <div id="loading" className={styles.loadingContainer}>
-          <div className={styles.loadingText}>Loading Velo stations...</div>
-          <div className={styles.loadingSpinner}></div>
-        </div>
-      )}
-
-      {isError && (
-        <div id="error" className={styles.errorContainer}>
-          <div className={styles.errorText}>{error}</div>
-        </div>
-      )}
-
-      {!isLoading && !isError && (
+    {!isLoading && !isError && (
         <div id="stations-list" className={styles.stationsGrid}>
-          {stations.map((station) => <StationCard key={station.id} station={station} />)}
+          {filteredStations.length > 0 ? (
+            filteredStations.map((station) => <StationCard key={station.id} station={station} />)
+          ) : (
+            <div className={styles.noStationsText}>No stations found.</div>
+          )}
         </div>
       )}
     </div>
