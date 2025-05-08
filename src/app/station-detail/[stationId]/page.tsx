@@ -7,12 +7,16 @@ import Link from 'next/link';
 import { Station } from '@/app/types/stations';
 
 
+
 const StationDetailPage: React.FC = () => {
   const params = useParams();
   const id = params.stationId as string;
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+const [bearing, setBearing] = useState<number | null>(null);
+
 
   useEffect(() => {
     if (id) {
@@ -36,6 +40,61 @@ const StationDetailPage: React.FC = () => {
       fetchStationDetail();
     }
   }, [id]);
+
+  useEffect(() => {
+    if (station?.latitude && station?.longitude) {
+      const updateLocationData = () => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude: userLat, longitude: userLon } = position.coords;
+            const distance = getDistanceFromLatLonInKm(userLat, userLon, station.latitude, station.longitude);
+            const bearingDeg = calculateBearing(userLat, userLon, station.latitude, station.longitude);
+            setDistanceKm(distance);
+            setBearing(bearingDeg);
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+          },
+          { enableHighAccuracy: true }
+        );
+      };
+  
+      updateLocationData();
+      const intervalId = setInterval(updateLocationData, 5000); // update every 5s
+      return () => clearInterval(intervalId);
+    }
+  }, [station]);
+  
+  function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+  
+  function deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
+  
+  function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const dLon = deg2rad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(deg2rad(lat2));
+    const x =
+      Math.cos(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) -
+      Math.sin(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(dLon);
+    const bearing = Math.atan2(y, x);
+    return (rad2deg(bearing) + 360) % 360;
+  }
+  
+  function rad2deg(rad: number): number {
+    return rad * (180 / Math.PI);
+  }
+  
 
   if (loading)
     return (
@@ -122,11 +181,27 @@ const StationDetailPage: React.FC = () => {
               width: `${(station.free_bikes / (station.free_bikes + station.empty_slots)) * 100}%`
             }}></div>
           </div>
+          
           <div className={styles.capacityLabels}>
             <span id="capacity-bikes">{station.free_bikes} bikes</span>
             <span id="capacity-spaces">{station.empty_slots} spaces</span>
           </div>
         </div>
+        {distanceKm !== null && bearing !== null && (
+  <div className={styles.directionCard}>
+    <h3>Distance & Direction</h3>
+    <div className={styles.compassWrapper}>
+      <div
+        className={styles.arrow}
+        style={{ transform: `rotate(${bearing}deg)` }}
+      >
+        ↑
+      </div>
+      <p>{distanceKm.toFixed(2)} km away</p>
+    </div>
+  </div>
+)}
+
       </div>
 
       {/* Bike image placed outside the white frame */}
