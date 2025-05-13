@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import styles from './page.module.css';
 import StationCard from '../components/StationCard';
+import { Station } from '@/app/types/stations';
 import useNetwork from '@/data/network';
 
 export default function HomePage() {
@@ -23,9 +24,9 @@ export default function HomePage() {
         <div className={styles.errorText}>{isError}</div>
       </div>
     );
-  
-  const stations = network.stations;
-  const filteredStations = stations.filter((station: any) =>
+
+  const stations: Station[] = network.stations;
+  const filteredStations = stations.filter((station: Station) =>
     station.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
