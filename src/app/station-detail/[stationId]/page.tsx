@@ -5,41 +5,18 @@ import { useParams } from 'next/navigation';
 import styles from './page.module.css';
 import Link from 'next/link';
 import { Station } from '@/app/types/stations';
+import useNetwork from '@/data/network';
 
 
 
 const StationDetailPage: React.FC = () => {
   const params = useParams();
   const id = params.stationId as string;
-  const [station, setStation] = useState<Station | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
-const [bearing, setBearing] = useState<number | null>(null);
+  const [bearing, setBearing] = useState<number | null>(null);
+const { network, isLoading, isError } = useNetwork();
 
-
-  useEffect(() => {
-    if (id) {
-      const fetchStationDetail = async () => {
-        try {
-          const response = await fetch('https://api.citybik.es/v2/networks/velo-antwerpen');
-          if (!response.ok) throw new Error('Network response was not ok');
-          const data = await response.json();
-          const foundStation = data.network.stations.find((s: any) => s.id === id);
-          if (foundStation) {
-            setStation(foundStation);
-          } else {
-            setError('Station not found');
-          }
-        } catch (err) {
-          setError('Failed to fetch station data');
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchStationDetail();
-    }
-  }, [id]);
+  const station: Station | undefined = network.stations.find((station) => station.id === id);
 
   useEffect(() => {
     if (station?.latitude && station?.longitude) {
@@ -64,6 +41,23 @@ const [bearing, setBearing] = useState<number | null>(null);
       return () => clearInterval(intervalId);
     }
   }, [station]);
+
+if (isLoading) 
+    return (
+      <div id="loading" className={styles.loadingContainer}>
+        <div className={styles.loadingText}>Loading Velo stations...</div>
+        <div className={styles.loadingSpinner}></div>
+      </div>
+    );
+  if (isError) 
+    return (
+      <div id="error" className={styles.errorContainer}>
+        <div className={styles.errorText}>{isError}</div>
+      </div>
+    );
+  
+
+
   
   function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Radius of the earth in km
@@ -95,22 +89,6 @@ const [bearing, setBearing] = useState<number | null>(null);
     return rad * (180 / Math.PI);
   }
   
-
-  if (loading)
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingText}>Loading station details...</div>
-        <div className={styles.loadingSpinner}></div>
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className={styles.errorContainer}>
-        <div className={styles.errorText}>{error}</div>
-      </div>
-    );
-
   if (!station) return null;
 
   return (

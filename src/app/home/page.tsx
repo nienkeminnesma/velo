@@ -72,7 +72,7 @@ export default function HomePage() {
       )}
 
     {!isLoading && !isError && (
-        <div id="stations-list" className={styles.stationsGrid}>
+        <div id="stations-list">
           {filteredStations.length > 0 ? (
             filteredStations.map((station) => <StationCard key={station.id} station={station} />)
           ) : (
