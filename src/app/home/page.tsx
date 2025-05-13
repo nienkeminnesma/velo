@@ -10,6 +10,7 @@ export default function HomePage() {
   const [showSearch, setShowSearch] = useState(false);
   const { network, isLoading, isError } = useNetwork();
 
+
   if (isLoading) 
     return (
       <div id="loading" className={styles.loadingContainer}>
@@ -24,9 +25,9 @@ export default function HomePage() {
       </div>
     );
   
-  const stations = network.stations;
-  const filteredStations = stations.filter((station) =>
-    station.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const stations: Station[] = network.stations;
+  const filteredStations = stations.filter((station: Station) =>
+    station.name.toLowerCase().includes(id.toLowerCase())
   );
 
   return (

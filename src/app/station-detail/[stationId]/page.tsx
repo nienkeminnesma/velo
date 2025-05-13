@@ -16,6 +16,7 @@ const StationDetailPage: React.FC = () => {
   const [bearing, setBearing] = useState<number | null>(null);
 const { network, isLoading, isError } = useNetwork();
 
+
   const station: Station | undefined = network.stations.find((station) => station.id === id);
 
   useEffect(() => {
