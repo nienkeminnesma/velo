@@ -25,7 +25,7 @@ export default function HomePage() {
     );
   
   const stations = network.stations;
-  const filteredStations = stations.filter((station) =>
+  const filteredStations = stations.filter((station: any) =>
     station.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -74,7 +74,7 @@ export default function HomePage() {
     {!isLoading && !isError && (
         <div id="stations-list">
           {filteredStations.length > 0 ? (
-            filteredStations.map((station) => <StationCard key={station.id} station={station} />)
+            filteredStations.map((station: any) => <StationCard key={station.id} station={station} />)
           ) : (
             <div className={styles.noStationsText}>No stations found.</div>
           )}
