@@ -75,7 +75,7 @@ export default function HomePage() {
     {!isLoading && !isError && (
         <div id="stations-list">
           {filteredStations.length > 0 ? (
-            filteredStations.map((station: any) => <StationCard key={station.id} station={station} />)
+            filteredStations.map((station: Station) => <StationCard key={station.id} station={station} />)
           ) : (
             <div className={styles.noStationsText}>No stations found.</div>
           )}

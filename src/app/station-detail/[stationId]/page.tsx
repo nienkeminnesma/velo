@@ -16,7 +16,7 @@ const StationDetailPage: React.FC = () => {
   const [bearing, setBearing] = useState<number | null>(null);
 const { network, isLoading, isError } = useNetwork();
 
-  const station: Station | undefined = network.stations.find((station: any) => station.id === id);
+  const station: Station | undefined = network.stations.find((station: Station) => station.id === id);
 
   useEffect(() => {
     if (station?.latitude && station?.longitude) {
