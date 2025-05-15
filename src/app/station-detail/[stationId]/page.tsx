@@ -7,16 +7,17 @@ import Link from 'next/link';
 import { Station } from '@/app/types/stations';
 import useNetwork from '@/data/network';
 
-
-
 const StationDetailPage: React.FC = () => {
   const params = useParams();
   const id = params.stationId as string;
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [bearing, setBearing] = useState<number | null>(null);
-const { network, isLoading, isError } = useNetwork();
+  const [showDirections, setShowDirections] = useState(false);
+  const { network, isLoading, isError } = useNetwork();
 
-  const station: Station | undefined = network.stations.find((station: Station) => station.id === id);
+  // Always call hooks first
+  // Define station even if network is not yet available (it will be undefined).
+  const station: Station | undefined = network ? network.stations.find((station: Station) => station.id === id) : undefined;
 
   useEffect(() => {
     if (station?.latitude && station?.longitude) {
@@ -30,35 +31,36 @@ const { network, isLoading, isError } = useNetwork();
             setBearing(bearingDeg);
           },
           (error) => {
-            console.error("Geolocation error:", error);
+            const errMessage = error.message || JSON.stringify(error);
+            console.error("Geolocation error:", errMessage);
           },
           { enableHighAccuracy: true }
         );
       };
-  
+
       updateLocationData();
       const intervalId = setInterval(updateLocationData, 5000); // update every 5s
       return () => clearInterval(intervalId);
     }
   }, [station]);
 
-if (isLoading) 
+  if (isLoading || !network) {
     return (
       <div id="loading" className={styles.loadingContainer}>
-        <div className={styles.loadingText}>Loading Velo stations...</div>
+        <div className={styles.loadingText}>Loading network data...</div>
         <div className={styles.loadingSpinner}></div>
       </div>
     );
-  if (isError) 
+  }
+  if (isError) {
     return (
       <div id="error" className={styles.errorContainer}>
         <div className={styles.errorText}>{isError}</div>
       </div>
     );
-  
+  }
+  if (!station) return null; // If station is not found, return nothing.
 
-
-  
   function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Radius of the earth in km
     const dLat = deg2rad(lat2 - lat1);
@@ -89,21 +91,18 @@ if (isLoading)
     return rad * (180 / Math.PI);
   }
   
-  if (!station) return null;
-
   return (
     <div className={styles.appContainer}>
       <Link href="/home" className={styles.backButton}>
-          <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          Back to stations
+        <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Back to stations
       </Link>
 
       <div className={styles.stationDetailCard} id="station-detail">
         <h1 id="station-name" className={styles.stationDetailName}>{station.name}</h1>
-
         <div id="station-address" className={styles.stationDetailAddress}>
           <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -159,26 +158,28 @@ if (isLoading)
               width: `${(station.free_bikes / (station.free_bikes + station.empty_slots)) * 100}%`
             }}></div>
           </div>
-          
           <div className={styles.capacityLabels}>
             <span id="capacity-bikes">{station.free_bikes} bikes</span>
             <span id="capacity-spaces">{station.empty_slots} spaces</span>
           </div>
         </div>
-        {distanceKm !== null && bearing !== null && (
-  <div className={styles.directionCard}>
-    <h3>Distance & Direction</h3>
-    <div className={styles.compassWrapper}>
-      <div
-        className={styles.arrow}
-        style={{ transform: `rotate(${bearing}deg)` }}
-      >
-        ↑
-      </div>
-      <p>{distanceKm.toFixed(2)} km away</p>
-    </div>
-  </div>
-)}
+        
+        {/* Toggle Directions Button */}
+        <div className={styles.directionButtonContainer}>
+          <button onClick={() => setShowDirections(!showDirections)} className={styles.directionButton}>
+            {showDirections ? "Hide Directions" : "Get Directions"}
+          </button>
+        </div>
+  
+        {showDirections && distanceKm !== null && bearing !== null && (
+          <div className={styles.directionCard}>
+            <h3>Distance & Direction</h3>
+            <div className={styles.compassWrapper}>
+              <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>↑</div>
+              <p>{distanceKm.toFixed(2)} km away</p>
+            </div>
+          </div>
+        )}
 
       </div>
 
