@@ -7,26 +7,17 @@ import Link from 'next/link';
 import { Station } from '@/app/types/stations';
 import useNetwork from '@/data/network';
 
-// Kompas helper
-interface WebkitCompassEvent extends DeviceOrientationEvent {
-  webkitCompassHeading?: number;
-}
 
-function hasWebkitCompassHeading(e: DeviceOrientationEvent): e is WebkitCompassEvent {
-  return 'webkitCompassHeading' in e;
-}
 
 const StationDetailPage: React.FC = () => {
   const params = useParams();
   const id = params.stationId as string;
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [bearing, setBearing] = useState<number | null>(null);
-  const [compassHeading, setCompassHeading] = useState<number | null>(null);
-  const { network, isLoading, isError } = useNetwork();
+const { network, isLoading, isError } = useNetwork();
 
   const station: Station | undefined = network.stations.find((station: Station) => station.id === id);
 
-  // Bereken afstand en richting tot station
   useEffect(() => {
     if (station?.latitude && station?.longitude) {
       const updateLocationData = () => {
@@ -44,52 +35,14 @@ const StationDetailPage: React.FC = () => {
           { enableHighAccuracy: true }
         );
       };
-
+  
       updateLocationData();
-      const intervalId = setInterval(updateLocationData, 5000); // elke 5s updaten
+      const intervalId = setInterval(updateLocationData, 5000); // update every 5s
       return () => clearInterval(intervalId);
     }
   }, [station]);
 
-  // Kompas eventlistener
-  useEffect(() => {
-    const handleOrientation = (e: DeviceOrientationEvent) => {
-      let heading: number | undefined;
-
-      if (hasWebkitCompassHeading(e) && e.webkitCompassHeading !== undefined) {
-        heading = e.webkitCompassHeading;
-      } else if (typeof e.alpha === 'number') {
-        heading = 360 - e.alpha;
-      }
-
-      if (heading !== undefined) {
-        setCompassHeading(heading);
-      }
-    };
-
-    if (typeof window !== 'undefined' && window.DeviceOrientationEvent) {
-      if (
-        typeof (DeviceOrientationEvent as any).requestPermission === 'function'
-      ) {
-        (DeviceOrientationEvent as any)
-          .requestPermission()
-          .then((response: string) => {
-            if (response === 'granted') {
-              window.addEventListener('deviceorientation', handleOrientation, true);
-            }
-          })
-          .catch(console.error);
-      } else {
-        window.addEventListener('deviceorientation', handleOrientation, true);
-      }
-    }
-
-    return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-    };
-  }, []);
-
-  if (isLoading) 
+if (isLoading) 
     return (
       <div id="loading" className={styles.loadingContainer}>
         <div className={styles.loadingText}>Loading Velo stations...</div>
@@ -102,9 +55,12 @@ const StationDetailPage: React.FC = () => {
         <div className={styles.errorText}>{isError}</div>
       </div>
     );
+  
 
+
+  
   function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
+    const R = 6371; // Radius of the earth in km
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -114,15 +70,11 @@ const StationDetailPage: React.FC = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
-
+  
   function deg2rad(deg: number): number {
     return deg * (Math.PI / 180);
   }
-
-  function rad2deg(rad: number): number {
-    return rad * (180 / Math.PI);
-  }
-
+  
   function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const dLon = deg2rad(lon2 - lon1);
     const y = Math.sin(dLon) * Math.cos(deg2rad(lat2));
@@ -132,17 +84,21 @@ const StationDetailPage: React.FC = () => {
     const bearing = Math.atan2(y, x);
     return (rad2deg(bearing) + 360) % 360;
   }
-
+  
+  function rad2deg(rad: number): number {
+    return rad * (180 / Math.PI);
+  }
+  
   if (!station) return null;
 
   return (
     <div className={styles.appContainer}>
       <Link href="/home" className={styles.backButton}>
-        <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12" />
-          <polyline points="12 19 5 12 12 5" />
-        </svg>
-        Back to stations
+          <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          Back to stations
       </Link>
 
       <div className={styles.stationDetailCard} id="station-detail">
@@ -203,31 +159,30 @@ const StationDetailPage: React.FC = () => {
               width: `${(station.free_bikes / (station.free_bikes + station.empty_slots)) * 100}%`
             }}></div>
           </div>
-
+          
           <div className={styles.capacityLabels}>
             <span id="capacity-bikes">{station.free_bikes} bikes</span>
             <span id="capacity-spaces">{station.empty_slots} spaces</span>
           </div>
         </div>
-
         {distanceKm !== null && bearing !== null && (
-          <div className={styles.directionCard}>
-            <h3>Distance & Direction</h3>
-            <div className={styles.compassWrapper}>
-              <div
-                className={styles.arrow}
-                style={{
-                  transform: `rotate(${(bearing - (compassHeading ?? 0))}deg)`
-                }}
-              >
-                ↑
-              </div>
-              <p>{distanceKm.toFixed(2)} km away</p>
-            </div>
-          </div>
-        )}
+  <div className={styles.directionCard}>
+    <h3>Distance & Direction</h3>
+    <div className={styles.compassWrapper}>
+      <div
+        className={styles.arrow}
+        style={{ transform: `rotate(${bearing}deg)` }}
+      >
+        ↑
+      </div>
+      <p>{distanceKm.toFixed(2)} km away</p>
+    </div>
+  </div>
+)}
+
       </div>
 
+      {/* Bike image placed outside the white frame */}
       <div className={styles.bikeImageContainer}>
         <img src="/images/bike.png" alt="Bike" className={styles.bikeImage} />
       </div>
