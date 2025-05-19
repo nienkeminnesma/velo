@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import styles from './page.module.css';
 import Link from 'next/link';
@@ -13,88 +13,36 @@ const StationDetailPage: React.FC = () => {
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [bearing, setBearing] = useState<number | null>(null);
   const [showDirections, setShowDirections] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const { network, isLoading, isError } = useNetwork();
-  const locationWatchId = useRef<number | null>(null);
 
   // Always call hooks first
   // Define station even if network is not yet available (it will be undefined).
   const station: Station | undefined = network ? network.stations.find((station: Station) => station.id === id) : undefined;
 
   useEffect(() => {
-    // Reset error state when toggling directions
-    if (showDirections) {
-      setLocationError(null);
-    }
-
-    if (station?.latitude && station?.longitude && showDirections) {
-      // Check if geolocation is supported
-      if (!navigator.geolocation) {
-        setLocationError("Geolocation is not supported by your browser");
-        return;
-      }
-
-      // Clear any existing watch
-      if (locationWatchId.current !== null) {
-        navigator.geolocation.clearWatch(locationWatchId.current);
-      }
-
-      try {
-        // Set up continuous location watching
-        locationWatchId.current = navigator.geolocation.watchPosition(
+    if (station?.latitude && station?.longitude) {
+      const updateLocationData = () => {
+        navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude: userLat, longitude: userLon } = position.coords;
             const distance = getDistanceFromLatLonInKm(userLat, userLon, station.latitude, station.longitude);
             const bearingDeg = calculateBearing(userLat, userLon, station.latitude, station.longitude);
             setDistanceKm(distance);
             setBearing(bearingDeg);
-            setLocationError(null); // Clear any previous errors on success
           },
           (error) => {
-            // Handle geolocation errors with user-friendly messages
-            let errorMsg = "Unable to retrieve your location";
-            
-            switch(error.code) {
-              case error.PERMISSION_DENIED:
-                errorMsg = "Location access was denied. Please enable location permissions for this site.";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMsg = "Location information is unavailable. Please check your device's GPS settings.";
-                break;
-              case error.TIMEOUT:
-                errorMsg = "Location request timed out. Please try again.";
-                break;
-              default:
-                errorMsg = `Location error: ${error.message || "Unknown error"}`;
-            }
-            
-            console.error("Geolocation error:", error);
-            setLocationError(errorMsg);
+            const errMessage = error.message || JSON.stringify(error);
+            console.error("Geolocation error:", errMessage);
           },
-          { 
-            enableHighAccuracy: true,
-            maximumAge: 10000,  // Accept positions up to 10 seconds old
-            timeout: 10000      // Wait up to 10 seconds for location
-          }
+          { enableHighAccuracy: true }
         );
-      } catch (e) {
-        console.error("Error setting up geolocation:", e);
-        setLocationError("Failed to initialize location tracking");
-      }
-
-      // Cleanup function
-      return () => {
-        if (locationWatchId.current !== null) {
-          navigator.geolocation.clearWatch(locationWatchId.current);
-          locationWatchId.current = null;
-        }
       };
-    } else if (!showDirections && locationWatchId.current !== null) {
-      // Clear the watch if directions are hidden
-      navigator.geolocation.clearWatch(locationWatchId.current);
-      locationWatchId.current = null;
+
+      updateLocationData();
+      const intervalId = setInterval(updateLocationData, 5000); // update every 5s
+      return () => clearInterval(intervalId);
     }
-  }, [station, showDirections]);
+  }, [station]);
 
   if (isLoading || !network) {
     return (
@@ -141,20 +89,6 @@ const StationDetailPage: React.FC = () => {
   
   function rad2deg(rad: number): number {
     return rad * (180 / Math.PI);
-  }
-
-  // Function to format distance based on how far away the user is
-  function formatDistance(distance: number): string {
-    if (distance < 0.1) {
-      // Less than 100 meters, show in meters
-      return `${Math.round(distance * 1000)} m`;
-    } else if (distance < 1) {
-      // Less than 1 km, show with more precision
-      return `${distance.toFixed(2)} km`;
-    } else {
-      // More than 1 km, show with less precision
-      return `${distance.toFixed(1)} km`;
-    }
   }
   
   return (
@@ -237,52 +171,12 @@ const StationDetailPage: React.FC = () => {
           </button>
         </div>
   
-        {showDirections && (
+        {showDirections && distanceKm !== null && bearing !== null && (
           <div className={styles.directionCard}>
-            <h3>Navigate to Station</h3>
+            <h3>Distance & Direction</h3>
             <div className={styles.compassWrapper}>
-              {locationError ? (
-                <div className={styles.locationError}>
-                  <svg className={styles.errorIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                  <p>{locationError}</p>
-                  <button 
-                    onClick={() => {
-                      setLocationError(null);
-                      setShowDirections(false);
-                      // Brief timeout before re-enabling
-                      setTimeout(() => setShowDirections(true), 500);
-                    }} 
-                    className={styles.retryButton}
-                  >
-                    Try Again
-                  </button>
-                </div>
-              ) : distanceKm !== null && bearing !== null ? (
-                <>
-                  <div className={styles.compassContainer}>
-                    <div className={styles.compass}>
-                      <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>
-                        ↑
-                      </div>
-                    </div>
-                  </div>
-                  <div className={styles.distanceInfo}>
-                    <p><strong>{formatDistance(distanceKm)}</strong></p>
-                    <p className={styles.directionHint}>
-                      The arrow points to the station's direction
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div className={styles.loadingLocation}>
-                  <div className={styles.locationSpinner}></div>
-                  <p>Getting your location...</p>
-                </div>
-              )}
+              <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>↑</div>
+              <p>{distanceKm.toFixed(2)} km away</p>
             </div>
           </div>
         )}
