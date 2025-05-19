@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import styles from './page.module.css';
 import Link from 'next/link';
@@ -14,35 +14,52 @@ const StationDetailPage: React.FC = () => {
   const [bearing, setBearing] = useState<number | null>(null);
   const [showDirections, setShowDirections] = useState(false);
   const { network, isLoading, isError } = useNetwork();
+  const locationWatchId = useRef<number | null>(null);
 
   // Always call hooks first
   // Define station even if network is not yet available (it will be undefined).
   const station: Station | undefined = network ? network.stations.find((station: Station) => station.id === id) : undefined;
 
   useEffect(() => {
-    if (station?.latitude && station?.longitude) {
-      const updateLocationData = () => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude: userLat, longitude: userLon } = position.coords;
-            const distance = getDistanceFromLatLonInKm(userLat, userLon, station.latitude, station.longitude);
-            const bearingDeg = calculateBearing(userLat, userLon, station.latitude, station.longitude);
-            setDistanceKm(distance);
-            setBearing(bearingDeg);
-          },
-          (error) => {
-            const errMessage = error.message || JSON.stringify(error);
-            console.error("Geolocation error:", errMessage);
-          },
-          { enableHighAccuracy: true }
-        );
-      };
+    if (station?.latitude && station?.longitude && showDirections) {
+      // Clear any existing watch
+      if (locationWatchId.current !== null) {
+        navigator.geolocation.clearWatch(locationWatchId.current);
+      }
 
-      updateLocationData();
-      const intervalId = setInterval(updateLocationData, 5000); // update every 5s
-      return () => clearInterval(intervalId);
+      // Set up continuous location watching
+      locationWatchId.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude: userLat, longitude: userLon } = position.coords;
+          const distance = getDistanceFromLatLonInKm(userLat, userLon, station.latitude, station.longitude);
+          const bearingDeg = calculateBearing(userLat, userLon, station.latitude, station.longitude);
+          setDistanceKm(distance);
+          setBearing(bearingDeg);
+        },
+        (error) => {
+          const errMessage = error.message || JSON.stringify(error);
+          console.error("Geolocation error:", errMessage);
+        },
+        { 
+          enableHighAccuracy: true,
+          maximumAge: 0,  // Always get fresh position
+          timeout: 5000   // Timeout after 5 seconds
+        }
+      );
+
+      // Cleanup function
+      return () => {
+        if (locationWatchId.current !== null) {
+          navigator.geolocation.clearWatch(locationWatchId.current);
+          locationWatchId.current = null;
+        }
+      };
+    } else if (!showDirections && locationWatchId.current !== null) {
+      // Clear the watch if directions are hidden
+      navigator.geolocation.clearWatch(locationWatchId.current);
+      locationWatchId.current = null;
     }
-  }, [station]);
+  }, [station, showDirections]);
 
   if (isLoading || !network) {
     return (
@@ -89,6 +106,20 @@ const StationDetailPage: React.FC = () => {
   
   function rad2deg(rad: number): number {
     return rad * (180 / Math.PI);
+  }
+
+  // Function to format distance based on how far away the user is
+  function formatDistance(distance: number): string {
+    if (distance < 0.1) {
+      // Less than 100 meters, show in meters
+      return `${Math.round(distance * 1000)} m`;
+    } else if (distance < 1) {
+      // Less than 1 km, show with more precision
+      return `${distance.toFixed(2)} km`;
+    } else {
+      // More than 1 km, show with less precision
+      return `${distance.toFixed(1)} km`;
+    }
   }
   
   return (
@@ -171,12 +202,29 @@ const StationDetailPage: React.FC = () => {
           </button>
         </div>
   
-        {showDirections && distanceKm !== null && bearing !== null && (
+        {showDirections && (
           <div className={styles.directionCard}>
-            <h3>Distance & Direction</h3>
+            <h3>Navigate to Station</h3>
             <div className={styles.compassWrapper}>
-              <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>↑</div>
-              <p>{distanceKm.toFixed(2)} km away</p>
+              {distanceKm !== null && bearing !== null ? (
+                <>
+                  <div className={styles.compassContainer}>
+                    <div className={styles.compass}>
+                      <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>
+                        ↑
+                      </div>
+                    </div>
+                  </div>
+                  <div className={styles.distanceInfo}>
+                    <p><strong>{formatDistance(distanceKm)}</strong></p>
+                    <p className={styles.directionHint}>
+                      The arrow points to the station&apos;s direction
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p>Getting your location...</p>
+              )}
             </div>
           </div>
         )}
