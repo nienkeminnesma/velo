@@ -117,6 +117,7 @@ const StationDetailPage: React.FC = () => {
     }
     
     if (heading !== null) {
+      heading = -heading;
       setCompassHeading(heading);
     }
   };
