@@ -7,6 +7,17 @@ import Link from 'next/link';
 import { Station } from '@/app/types/stations';
 import useNetwork from '@/data/network';
 
+// Extended DeviceOrientationEvent interface to include webkit properties
+interface ExtendedDeviceOrientationEvent extends DeviceOrientationEvent {
+  webkitCompassHeading?: number;
+  webkitCompassAccuracy?: number;
+}
+
+// Extended DeviceOrientationEvent constructor with requestPermission method
+interface DeviceOrientationEventiOS extends EventTarget {
+  requestPermission?: () => Promise<string>;
+}
+
 const StationDetailPage: React.FC = () => {
   const params = useParams();
   const id = params.stationId as string;
@@ -15,12 +26,15 @@ const StationDetailPage: React.FC = () => {
   const { network, isLoading, isError } = useNetwork();
   const locationWatchId = useRef<number | null>(null);
   
+  // Added for compass functionality
+  const [compassHeading, setCompassHeading] = useState<number | null>(null);
+  const compassInitialized = useRef<boolean>(false);
 
   // Always call hooks first
   // Define station even if network is not yet available (it will be undefined).
   const station: Station | undefined = network ? network.stations.find((station: Station) => station.id === id) : undefined;
 
-useEffect(() => {
+  useEffect(() => {
     if (!station?.latitude || !station?.longitude) return;
 
     if (locationWatchId.current !== null) {
@@ -52,6 +66,76 @@ useEffect(() => {
       }
     };
   }, [station]);
+
+  // State to track permission status
+  const [compassPermission, setCompassPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+  
+  // Function to request compass permissions
+  const requestCompassPermission = async () => {
+    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) {
+      setCompassPermission('denied');
+      return;
+    }
+
+    try {
+      // Use proper typing for the iOS-specific DeviceOrientationEvent
+      const DeviceOrientationEvent = window.DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
+      
+      // iOS 13+ requires explicit permission
+      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        setCompassPermission(permission as 'granted' | 'denied');
+        
+        if (permission === 'granted') {
+          window.addEventListener('deviceorientation', handleDeviceOrientation as EventListener);
+          compassInitialized.current = true;
+        }
+      } else {
+        // For Android and other devices, we'll just try to use the API
+        // Note: Android permissions are typically requested via the manifest
+        setCompassPermission('granted');
+        window.addEventListener('deviceorientation', handleDeviceOrientation as EventListener);
+        compassInitialized.current = true;
+      }
+    } catch (error) {
+      console.error('Error requesting device orientation permission:', error);
+      setCompassPermission('denied');
+    }
+  };
+
+  // Handler for device orientation events
+  const handleDeviceOrientation = (event: ExtendedDeviceOrientationEvent) => {
+    // Different browsers provide compass data in different ways
+    let heading: number | null = null;
+    
+    if (event.webkitCompassHeading !== undefined) {
+      // iOS provides webkitCompassHeading (inverted)
+      heading = event.webkitCompassHeading;
+    } else if (event.alpha !== null && event.alpha !== undefined) {
+      // Android provides rotation in 'alpha' from 0 to 360
+      heading = 360 - event.alpha;
+    }
+    
+    if (heading !== null) {
+      setCompassHeading(heading);
+    }
+  };
+
+  // Set up and clean up the compass event listener
+  useEffect(() => {
+    // Only add event listeners if permission is granted
+    if (compassPermission === 'granted' && !compassInitialized.current) {
+      window.addEventListener('deviceorientation', handleDeviceOrientation as EventListener);
+      compassInitialized.current = true;
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('deviceorientation', handleDeviceOrientation as EventListener);
+      }
+    };
+  }, [compassPermission]);
+  
 
   if (isLoading || !network) {
     return (
@@ -190,11 +274,25 @@ useEffect(() => {
           <div className={styles.directionCard}>
             <h3>Navigate to Station</h3>
             <div className={styles.compassWrapper}>
-              {distanceKm !== null && bearing !== null ? (
+              {compassPermission === 'prompt' ? (
+                <button 
+                  className={styles.permissionButton}
+                  onClick={requestCompassPermission}
+                >
+                  Enable Compass
+                </button>
+              ) : compassPermission === 'denied' ? (
+                <p>Compass access denied. Please enable location and orientation permissions in your device settings.</p>
+              ) : distanceKm !== null && bearing !== null ? (
                 <>
                   <div className={styles.compassContainer}>
                     <div className={styles.compass}>
-                      <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>
+                      <div 
+                        className={styles.arrow} 
+                        style={{ 
+                          transform: `rotate(${compassHeading !== null ? (compassHeading + bearing) % 360 : bearing}deg)` 
+                        }}
+                      >
                         ↑
                       </div>
                     </div>
