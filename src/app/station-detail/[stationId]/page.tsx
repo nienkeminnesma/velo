@@ -14,19 +14,13 @@ const StationDetailPage: React.FC = () => {
   const [bearing, setBearing] = useState<number | null>(null);
   const { network, isLoading, isError } = useNetwork();
   const locationWatchId = useRef<number | null>(null);
+  
 
-  // Always call hooks first.
+  // Always call hooks first
+  // Define station even if network is not yet available (it will be undefined).
   const station: Station | undefined = network ? network.stations.find((station: Station) => station.id === id) : undefined;
 
-  // This function will reveal a permission prompt element.
-function onShowRequestPermissions() {
-  const requestPermissionsElement = document.querySelector('#request-permissions') as HTMLElement | null;
-  if (requestPermissionsElement) {
-    requestPermissionsElement.style.display = 'block';
-  }
-}
-
-  useEffect(() => {
+useEffect(() => {
     if (!station?.latitude || !station?.longitude) return;
 
     if (locationWatchId.current !== null) {
@@ -43,10 +37,6 @@ function onShowRequestPermissions() {
       },
       (error) => {
         console.error("Geolocation error:", error.message || error);
-        // If permission is denied, show the request permissions element.
-        if (error.code === error.PERMISSION_DENIED) {
-          onShowRequestPermissions();
-        }
       },
       {
         enableHighAccuracy: true,
@@ -81,7 +71,7 @@ function onShowRequestPermissions() {
   if (!station) return null; // If station is not found, return nothing.
 
   function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
+    const R = 6371; // Radius of the earth in km
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -99,8 +89,9 @@ function onShowRequestPermissions() {
   function calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const dLon = deg2rad(lon2 - lon1);
     const y = Math.sin(dLon) * Math.cos(deg2rad(lat2));
-    const x = Math.cos(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) -
-              Math.sin(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(dLon);
+    const x =
+      Math.cos(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) -
+      Math.sin(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(dLon);
     const bearing = Math.atan2(y, x);
     return (rad2deg(bearing) + 360) % 360;
   }
@@ -109,12 +100,16 @@ function onShowRequestPermissions() {
     return rad * (180 / Math.PI);
   }
 
+  // Function to format distance based on how far away the user is
   function formatDistance(distance: number): string {
     if (distance < 0.1) {
+      // Less than 100 meters, show in meters
       return `${Math.round(distance * 1000)} m`;
     } else if (distance < 1) {
+      // Less than 1 km, show with more precision
       return `${distance.toFixed(2)} km`;
     } else {
+      // More than 1 km, show with less precision
       return `${distance.toFixed(1)} km`;
     }
   }
@@ -122,8 +117,7 @@ function onShowRequestPermissions() {
   return (
     <div className={styles.appContainer}>
       <Link href="/home" className={styles.backButton}>
-        <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="19" y1="12" x2="5" y2="12" />
           <polyline points="12 19 5 12 12 5" />
         </svg>
@@ -133,8 +127,7 @@ function onShowRequestPermissions() {
       <div className={styles.stationDetailCard} id="station-detail">
         <h1 id="station-name" className={styles.stationDetailName}>{station.name}</h1>
         <div id="station-address" className={styles.stationDetailAddress}>
-          <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
@@ -143,8 +136,7 @@ function onShowRequestPermissions() {
 
         <div className={styles.stationMeta}>
           <div className={styles.lastUpdated}>
-            <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
@@ -160,8 +152,7 @@ function onShowRequestPermissions() {
         <div className={styles.availabilityGrid}>
           <div className={styles.bikesCard}>
             <div className={styles.availabilityHeader}>
-              <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
                 <path d="M19 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
                 <path d="M12 19v-4l-3-3 4-3 2 3h2" />
@@ -173,8 +164,7 @@ function onShowRequestPermissions() {
 
           <div className={styles.spacesCard}>
             <div className={styles.availabilityHeader}>
-              <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
@@ -187,44 +177,41 @@ function onShowRequestPermissions() {
         <div className={styles.capacityCard}>
           <h3>Station Capacity</h3>
           <div className={styles.progressBarContainer}>
-            <div id="capacity-bar" className={styles.progressBar} style={{ width: `${(station.free_bikes / (station.free_bikes + station.empty_slots)) * 100}%` }}></div>
+            <div id="capacity-bar" className={styles.progressBar} style={{
+              width: `${(station.free_bikes / (station.free_bikes + station.empty_slots)) * 100}%`
+            }}></div>
           </div>
           <div className={styles.capacityLabels}>
             <span id="capacity-bikes">{station.free_bikes} bikes</span>
             <span id="capacity-spaces">{station.empty_slots} spaces</span>
           </div>
         </div>
-        
-        {/* Navigation is always visible; if location permission isn’t granted, a prompt appears */}
-        <div className={styles.directionCard}>
-          <h3>Navigate to Station</h3>
-          <div className={styles.compassWrapper}>
-            {distanceKm !== null && bearing !== null ? (
-              <>
-                <div className={styles.compassContainer}>
-                  <div className={styles.compass}>
-                    <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>↑</div>
+
+          <div className={styles.directionCard}>
+            <h3>Navigate to Station</h3>
+            <div className={styles.compassWrapper}>
+              {distanceKm !== null && bearing !== null ? (
+                <>
+                  <div className={styles.compassContainer}>
+                    <div className={styles.compass}>
+                      <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>
+                        ↑
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className={styles.distanceInfo}>
-                  <p><strong>{formatDistance(distanceKm)}</strong></p>
-                  <p className={styles.directionHint}>
-                    The arrow points toward the station.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <p>Getting your location...</p>
-            )}
+                  <div className={styles.distanceInfo}>
+                    <p><strong>{formatDistance(distanceKm)}</strong></p>
+                  </div>
+                </>
+              ) : (
+                <p>Getting your location...</p>
+              )}
+            </div>
           </div>
-        </div>
+
       </div>
-  
-      {/* Hidden permissions prompt element */}
-      <div id="request-permissions" style={{ display: 'none', padding: '1rem', background: '#fde047', margin: '1rem 0' }}>
-        <p>Please grant location permissions in your browser settings.</p>
-      </div>
-  
+
+      {/* Bike image placed outside the white frame */}
       <div className={styles.bikeImageContainer}>
         <img src="/images/bike.png" alt="Bike" className={styles.bikeImage} />
       </div>
