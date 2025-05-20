@@ -7,17 +7,6 @@ import Link from 'next/link';
 import { Station } from '@/app/types/stations';
 import useNetwork from '@/data/network';
 
-// Extended DeviceOrientationEvent interface to include webkit properties
-interface ExtendedDeviceOrientationEvent extends DeviceOrientationEvent {
-  webkitCompassHeading?: number;
-  webkitCompassAccuracy?: number;
-}
-
-// Extended DeviceOrientationEvent constructor with requestPermission method
-interface DeviceOrientationEventiOS extends EventTarget {
-  requestPermission?: () => Promise<string>;
-}
-
 const StationDetailPage: React.FC = () => {
   const params = useParams();
   const id = params.stationId as string;
@@ -26,15 +15,12 @@ const StationDetailPage: React.FC = () => {
   const { network, isLoading, isError } = useNetwork();
   const locationWatchId = useRef<number | null>(null);
   
-  // Added for compass functionality
-  const [compassHeading, setCompassHeading] = useState<number | null>(null);
-  const compassInitialized = useRef<boolean>(false);
 
   // Always call hooks first
   // Define station even if network is not yet available (it will be undefined).
   const station: Station | undefined = network ? network.stations.find((station: Station) => station.id === id) : undefined;
 
-  useEffect(() => {
+useEffect(() => {
     if (!station?.latitude || !station?.longitude) return;
 
     if (locationWatchId.current !== null) {
@@ -66,65 +52,6 @@ const StationDetailPage: React.FC = () => {
       }
     };
   }, [station]);
-
-  // Fixed useEffect for compass functionality with proper TypeScript types
-  useEffect(() => {
-    if (compassInitialized.current) return;
-    
-    const handleDeviceOrientation = (event: ExtendedDeviceOrientationEvent) => {
-      // Different browsers provide compass data in different ways
-      let heading: number | null = null;
-      
-      if (event.webkitCompassHeading !== undefined) {
-        // iOS provides webkitCompassHeading (inverted)
-        heading = event.webkitCompassHeading;
-      } else if (event.alpha !== null && event.alpha !== undefined) {
-        // Android provides rotation in 'alpha' from 0 to 360
-        heading = 360 - event.alpha;
-      }
-      
-      if (heading !== null) {
-        setCompassHeading(heading);
-      }
-    };
-
-    const initCompass = () => {
-      if (typeof window !== 'undefined' && 'DeviceOrientationEvent' in window) {
-        // Check if we need to request permission (iOS 13+)
-        const requestPermission = async () => {
-          // Use proper typing for the iOS-specific DeviceOrientationEvent
-          const DeviceOrientationEvent = window.DeviceOrientationEvent as unknown as DeviceOrientationEventiOS;
-          
-          if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            try {
-              const permission = await DeviceOrientationEvent.requestPermission();
-              if (permission === 'granted') {
-                window.addEventListener('deviceorientation', handleDeviceOrientation as EventListener);
-              } else {
-                console.log('Device orientation permission denied');
-              }
-            } catch (error) {
-              console.error('Error requesting device orientation permission:', error);
-            }
-          } else {
-            // No permission needed (non-iOS or older iOS)
-            window.addEventListener('deviceorientation', handleDeviceOrientation as EventListener);
-          }
-        };
-        
-        requestPermission();
-      }
-    };
-
-    initCompass();
-    compassInitialized.current = true;
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('deviceorientation', handleDeviceOrientation as EventListener);
-      }
-    };
-  }, []);
 
   if (isLoading || !network) {
     return (
@@ -267,12 +194,7 @@ const StationDetailPage: React.FC = () => {
                 <>
                   <div className={styles.compassContainer}>
                     <div className={styles.compass}>
-                      <div 
-                        className={styles.arrow} 
-                        style={{ 
-                          transform: `rotate(${compassHeading !== null ? (compassHeading + bearing) % 360 : bearing}deg)` 
-                        }}
-                      >
+                      <div className={styles.arrow} style={{ transform: `rotate(${bearing}deg)` }}>
                         ↑
                       </div>
                     </div>
