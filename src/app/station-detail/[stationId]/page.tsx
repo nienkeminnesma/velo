@@ -12,7 +12,6 @@ const StationDetailPage: React.FC = () => {
   const id = params.stationId as string;
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [bearing, setBearing] = useState<number | null>(null);
-  const [showDirections, setShowDirections] = useState(false);
   const { network, isLoading, isError } = useNetwork();
   const locationWatchId = useRef<number | null>(null);
 
@@ -20,46 +19,38 @@ const StationDetailPage: React.FC = () => {
   // Define station even if network is not yet available (it will be undefined).
   const station: Station | undefined = network ? network.stations.find((station: Station) => station.id === id) : undefined;
 
-  useEffect(() => {
-    if (station?.latitude && station?.longitude && showDirections) {
-      // Clear any existing watch
+useEffect(() => {
+    if (!station?.latitude || !station?.longitude) return;
+
+    if (locationWatchId.current !== null) {
+      navigator.geolocation.clearWatch(locationWatchId.current);
+    }
+
+    locationWatchId.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude: userLat, longitude: userLon } = position.coords;
+        const distance = getDistanceFromLatLonInKm(userLat, userLon, station.latitude, station.longitude);
+        const bearingDeg = calculateBearing(userLat, userLon, station.latitude, station.longitude);
+        setDistanceKm(distance);
+        setBearing(bearingDeg);
+      },
+      (error) => {
+        console.error("Geolocation error:", error.message || error);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 5000,
+      }
+    );
+
+    return () => {
       if (locationWatchId.current !== null) {
         navigator.geolocation.clearWatch(locationWatchId.current);
+        locationWatchId.current = null;
       }
-
-      // Set up continuous location watching
-      locationWatchId.current = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude: userLat, longitude: userLon } = position.coords;
-          const distance = getDistanceFromLatLonInKm(userLat, userLon, station.latitude, station.longitude);
-          const bearingDeg = calculateBearing(userLat, userLon, station.latitude, station.longitude);
-          setDistanceKm(distance);
-          setBearing(bearingDeg);
-        },
-        (error) => {
-          const errMessage = error.message || JSON.stringify(error);
-          console.error("Geolocation error:", errMessage);
-        },
-        { 
-          enableHighAccuracy: true,
-          maximumAge: 0,  // Always get fresh position
-          timeout: 5000   // Timeout after 5 seconds
-        }
-      );
-
-      // Cleanup function
-      return () => {
-        if (locationWatchId.current !== null) {
-          navigator.geolocation.clearWatch(locationWatchId.current);
-          locationWatchId.current = null;
-        }
-      };
-    } else if (!showDirections && locationWatchId.current !== null) {
-      // Clear the watch if directions are hidden
-      navigator.geolocation.clearWatch(locationWatchId.current);
-      locationWatchId.current = null;
-    }
-  }, [station, showDirections]);
+    };
+  }, [station]);
 
   if (isLoading || !network) {
     return (
@@ -194,15 +185,7 @@ const StationDetailPage: React.FC = () => {
             <span id="capacity-spaces">{station.empty_slots} spaces</span>
           </div>
         </div>
-        
-        {/* Toggle Directions Button */}
-        <div className={styles.directionButtonContainer}>
-          <button onClick={() => setShowDirections(!showDirections)} className={styles.directionButton}>
-            {showDirections ? "Hide Directions" : "Get Directions"}
-          </button>
-        </div>
-  
-        {showDirections && (
+
           <div className={styles.directionCard}>
             <h3>Navigate to Station</h3>
             <div className={styles.compassWrapper}>
@@ -227,7 +210,6 @@ const StationDetailPage: React.FC = () => {
               )}
             </div>
           </div>
-        )}
 
       </div>
 
